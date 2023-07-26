@@ -82,3 +82,14 @@ def construct_data_loaders(video_dicts: List[Dict[str, pd.DataFrame]],
 
     return [train_data_loader] + other_data_loaders
 
+def compute_class_weights(data:Dict[str, pd.DataFrame])->List[np.array]:
+    # concat all dataframes
+    df = pd.concat(list(data.values()))
+    # get number of samples for every class
+    q1 = df['q1'].value_counts().sort_index()
+    q2 = df['q2'].value_counts().sort_index()
+    q3 = df['q3'].value_counts().sort_index()
+    # compute class weights
+    class_weights = [1./(q1/q1.sum()), 1./(q2/q2.sum()), 1./(q3/q3.sum())]
+    return class_weights
+
