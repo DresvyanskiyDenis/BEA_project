@@ -82,7 +82,11 @@ def extract_embeddings_df(input_df: pd.DataFrame, face_detector, preprocessing_f
         # dump embeddings_df to disk every 1000 rows to save the CPU time as the pandas.concat copies every time the
         # whole dataframe and slows down the process
         if index % 1000 == 0:
+            # write to disk
             embeddings_df.to_csv(os.path.join(output_folder, output_filename), index=False, mode='a', header=False)
+            # clear embeddings_df
+            embeddings_df = pd.DataFrame(columns = embeddings_df.columns, dtype=embeddings_df.dtypes)
+
     # save remaining rows
     embeddings_df.to_csv(os.path.join(output_folder, output_filename), index=False, mode='a', header=False)
 
