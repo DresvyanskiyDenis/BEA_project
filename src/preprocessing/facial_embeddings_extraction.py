@@ -38,8 +38,8 @@ def extract_embeddings_df(input_df: pd.DataFrame, face_detector, preprocessing_f
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     # create embeddings_df
-    embeddings_df = pd.DataFrame(
-        columns=['video_name', 'frame_num', 'q1', 'q2', 'q3'] + ['emb_{}'.format(i) for i in range(embeddings_size)])
+    column_names = ['video_name', 'frame_num', 'q1', 'q2', 'q3'] + ['emb_{}'.format(i) for i in range(embeddings_size)]
+    embeddings_df = pd.DataFrame(columns=column_names)
     # save empty dataframe to create a file
     embeddings_df.to_csv(os.path.join(output_folder, output_filename), index=False)
     # initialize last embeddings
@@ -84,8 +84,9 @@ def extract_embeddings_df(input_df: pd.DataFrame, face_detector, preprocessing_f
         if index % 1000 == 0:
             # write to disk
             embeddings_df.to_csv(os.path.join(output_folder, output_filename), index=False, mode='a', header=False)
+            del embeddings_df
             # clear embeddings_df
-            embeddings_df = pd.DataFrame(columns = embeddings_df.columns, dtype=embeddings_df.dtypes)
+            embeddings_df = pd.DataFrame(columns = column_names)
 
     # save remaining rows
     embeddings_df.to_csv(os.path.join(output_folder, output_filename), index=False, mode='a', header=False)
