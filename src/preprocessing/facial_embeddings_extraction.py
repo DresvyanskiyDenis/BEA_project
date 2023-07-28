@@ -40,6 +40,9 @@ def extract_embeddings_df(input_df: pd.DataFrame, face_detector, preprocessing_f
     # create embeddings_df
     embeddings_df = pd.DataFrame(
         columns=['video_name', 'frame_num', 'q1', 'q2', 'q3'] + ['emb_{}'.format(i) for i in range(embeddings_size)])
+    # save empty dataframe to create a file
+    embeddings_df.to_csv(os.path.join(output_folder, output_filename), index=False)
+    # initialize last embeddings
     last_embeddings = np.zeros((1, 256))
     # iterate over rows of input_df
     for index, row in tqdm(input_df.iterrows(), total=input_df.shape[0]):
@@ -76,13 +79,17 @@ def extract_embeddings_df(input_df: pd.DataFrame, face_detector, preprocessing_f
         }
         new_row.update({'emb_{}'.format(i): embeddings[0][i] for i in range(embeddings_size)})
         embeddings_df = pd.concat([embeddings_df, pd.DataFrame.from_records([new_row])], ignore_index=True)
-    # save embeddings_df
-    embeddings_df.to_csv(os.path.join(output_folder, output_filename), index=False)
+        # dump embeddings_df to disk every 1000 rows to save the CPU time as the pandas.concat copies every time the
+        # whole dataframe and slows down the process
+        if index % 1000 == 0:
+            embeddings_df.to_csv(os.path.join(output_folder, output_filename), index=False, mode='a', header=False)
+    # save remaining rows
+    embeddings_df.to_csv(os.path.join(output_folder, output_filename), index=False, mode='a', header=False)
 
 
 def main():
     # params
-    data_path = r'/work/home/dsu/Datasets/BEA/'
+    data_path = r'/Data/'
     output_folder = r'/work/home/dsu/Datasets/BEA/extracted_embeddings/'
     path_to_train_labels = os.path.join(data_path, 'train.csv')
     path_to_dev_labels = os.path.join(data_path, 'dev.csv')
@@ -102,25 +109,27 @@ def main():
     embeddings_extractor = load_embeddings_extractor(path_to_weights_embeddings_extractor, device)
     # load labels
     train_labels = pd.read_csv(path_to_train_labels)
-    dev_labels = pd.read_csv(path_to_dev_labels)
-    test_labels = pd.read_csv(path_to_test_labels)
+    #dev_labels = pd.read_csv(path_to_dev_labels)
+    #test_labels = pd.read_csv(path_to_test_labels)
     # change path to images to new path where these images are located
     train_labels['file_name'] = train_labels['file_name'].apply(lambda x: os.path.join(path_to_train_images, x))
-    dev_labels['file_name'] = dev_labels['file_name'].apply(lambda x: os.path.join(path_to_dev_images, x))
-    test_labels['file_name'] = test_labels['file_name'].apply(lambda x: os.path.join(path_to_test_images, x))
+    #dev_labels['file_name'] = dev_labels['file_name'].apply(lambda x: os.path.join(path_to_dev_images, x))
+    #test_labels['file_name'] = test_labels['file_name'].apply(lambda x: os.path.join(path_to_test_images, x))
 
     # extract embeddings
+    print('Extracting embeddings for train set...')
     extract_embeddings_df(input_df=train_labels, face_detector=face_detector, preprocessing_functions=preprocessing_functions,
                           embeddings_extractor=embeddings_extractor, embeddings_size=256,
                           device=device, output_folder=output_folder, output_filename='train_embeddings.csv')
-    extract_embeddings_df(input_df=dev_labels, face_detector=face_detector, preprocessing_functions=preprocessing_functions,
-                            embeddings_extractor=embeddings_extractor, embeddings_size=256,
-                            device=device, output_folder=output_folder, output_filename='dev_embeddings.csv')
-    print('Preprocessing test set...')
-    extract_embeddings_df(input_df=test_labels, face_detector=face_detector,
-                          preprocessing_functions=preprocessing_functions,
-                          embeddings_extractor=embeddings_extractor, embeddings_size=256,
-                          device=device, output_folder=output_folder, output_filename='test_embeddings.csv')
+    #print('Extracting embeddings for dev set...')
+    #extract_embeddings_df(input_df=dev_labels, face_detector=face_detector, preprocessing_functions=preprocessing_functions,
+    #                        embeddings_extractor=embeddings_extractor, embeddings_size=256,
+    #                        device=device, output_folder=output_folder, output_filename='dev_embeddings.csv')
+    #print('Extracting embeddings for test set...')
+    #extract_embeddings_df(input_df=test_labels, face_detector=face_detector,
+    #                      preprocessing_functions=preprocessing_functions,
+    #                      embeddings_extractor=embeddings_extractor, embeddings_size=256,
+    #                      device=device, output_folder=output_folder, output_filename='test_embeddings.csv')
 
 
 if __name__ == "__main__":
