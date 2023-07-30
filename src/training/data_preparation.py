@@ -25,6 +25,7 @@ def load_data(paths_to_dfs: List[str]) -> List[Dict[str, pd.DataFrame]]:
         dfs[df_idx]['timestep'] = dfs[df_idx]['frame_num']*0.2
         # reorder columns
         new_order = ['video_name', 'frame_num', 'timestep', 'q1', 'q2', 'q3'] + [f'emb_{i}' for i in range(256)]
+        dfs[df_idx] = dfs[df_idx][new_order]
 
     # the data format of the df is the following:
     # video_name, frame_num, q1, q2, q3, emb_0, emb_1, ..., emb_255
@@ -66,7 +67,7 @@ def construct_data_loaders(video_dicts: List[Dict[str, pd.DataFrame]],
     train_data_loader = TemporalEmbeddingsLoader(embeddings_with_labels=train_data_loader, label_columns=label_columns,
                                                     feature_columns=feature_columns,
                                                     window_size=window_size, stride=stride,
-                                                    consider_timestamps=False,
+                                                    consider_timestamps=True,
                                                     preprocessing_functions=None, shuffle=True)
     train_data_loader = torch.utils.data.DataLoader(train_data_loader, batch_size=batch_size, shuffle=True)
 
@@ -75,7 +76,7 @@ def construct_data_loaders(video_dicts: List[Dict[str, pd.DataFrame]],
         loader = TemporalEmbeddingsLoader(embeddings_with_labels=video_dict, label_columns=label_columns,
                                             feature_columns=feature_columns,
                                           window_size=window_size, stride=stride,
-                                          consider_timestamps=False,
+                                          consider_timestamps=True,
                                           preprocessing_functions=None, shuffle=False)
         loader = torch.utils.data.DataLoader(loader, batch_size=batch_size, shuffle=False)
         other_data_loaders.append(loader)

@@ -1,8 +1,5 @@
 import sys
 
-from src.training.data_preparation import load_data, construct_data_loaders, compute_class_weights
-from src.training.models import Seq2one_model
-
 sys.path.append('/work/home/dsu/BEA_project/')
 sys.path.append('/work/home/dsu/datatools/')
 
@@ -14,14 +11,15 @@ from functools import partial
 from typing import Tuple, List, Dict, Optional
 
 import numpy as np
+import wandb
 import torch
 from sklearn.metrics import recall_score, precision_score, f1_score, accuracy_score
 
 from pytorch_utils.lr_schedullers import WarmUpScheduler
 from pytorch_utils.training_utils.callbacks import TorchEarlyStopping
 from pytorch_utils.training_utils.losses import SoftFocalLoss
-
-import wandb
+from src.training.data_preparation import load_data, construct_data_loaders, compute_class_weights
+from src.training.models import Seq2one_model
 
 
 def construct_model(num_classes: int, num_timesteps: int) -> torch.nn.Module:
@@ -350,9 +348,9 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
 def main(window_size, stride, batch_size, accumulate_gradients,
          loss_multiplication_factor):
     # params
-    path_to_train_df = "/work/home/dsu/Datasets/BEA/train_emb.csv"
-    path_to_dev_df = "/work/home/dsu/Datasets/BEA/dev_emb.csv"
-    path_to_test_df = "/work/home/dsu/Datasets/BEA/test_emb.csv"
+    path_to_train_df = "/Data/extracted_embeddings/train_embeddings.csv"
+    path_to_dev_df = "/Data/extracted_embeddings/dev_embeddings.csv"
+    path_to_test_df = "/Data/extracted_embeddings/test_embeddings.csv"
     print("Start of the script....")
     # load data
     print("Loading data....")
@@ -378,9 +376,7 @@ def main(window_size, stride, batch_size, accumulate_gradients,
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        prog='Emotion Recognition model training',
-        epilog='Parameters: model_type, batch_size, accumulate_gradients.')
+    parser = argparse.ArgumentParser(prog='Emotion Recognition model training')
     parser.add_argument('--window_size', type=float, required=True)
     parser.add_argument('--stride', type=float, required=True)
     parser.add_argument('--batch_size', type=int, required=True)
