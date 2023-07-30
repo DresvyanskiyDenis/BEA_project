@@ -1,5 +1,7 @@
 import sys
 
+import scipy
+
 sys.path.append('/work/home/dsu/BEA_project/')
 sys.path.append('/work/home/dsu/datatools/')
 
@@ -22,10 +24,27 @@ from src.training.data_preparation import load_data, construct_data_loaders, com
 from src.training.models import Seq2one_model
 
 
-def construct_model(num_classes: int, num_timesteps: int) -> torch.nn.Module:
-    model = Seq2one_model(input_size=256, num_classes=[num_classes]*3, transformer_num_heads=4,
+def construct_model(num_classes: List[int], num_timesteps: int) -> torch.nn.Module:
+    model = Seq2one_model(input_size=256, num_classes=num_classes, transformer_num_heads=4,
                           num_timesteps=num_timesteps)
     return model
+
+def transform_labels_to_one_hot(labels: torch.Tensor, num_classes:int) -> torch.Tensor:
+    # input shape (batch_size, sequence_length, number_of_class)
+    # Warning: in this case, the number_of_class can be 3-dimensional, for example.
+    # This means that the task is multi-task or multi-label classification
+    # output shape (batch_size, task, one_hot_encoded)
+    labels = labels.cpu().numpy()
+    # calculate mode for each task
+    labels = scipy.stats.mode(labels, axis=1, keepdims=False)[0]
+    # one-hot encode
+    labels = [np.eye(num_classes)[labels[:,i].astype(int)] for i in range(labels.shape[1])]
+    labels = [torch.from_numpy(label).float() for label in labels]
+    # concatenate them back so that they have shape (batch_size, task, one_hot_encoded)
+    labels = torch.stack(labels, dim=1)
+    return labels
+
+
 
 
 def evaluate_model(model: torch.nn.Module, generator: torch.utils.data.DataLoader, device: torch.device) -> List[Dict[
@@ -53,12 +72,16 @@ def evaluate_model(model: torch.nn.Module, generator: torch.utils.data.DataLoade
             outputs = model(inputs) # list of outputs for each classification task
 
             # labels to numpy
-            labels = [label.cpu().numpy().squeeze() for label in labels]
+            labels = labels.cpu().numpy().squeeze()
+            # take mode to get rid of sequence dimension
+            labels = scipy.stats.mode(labels, axis=1, keepdims=False)[0]
 
             # softmax, transformation to numpy, argmax for each classification task
             outputs = [torch.softmax(output, dim=-1) for output in outputs]
             outputs = [output.cpu().numpy().squeeze() for output in outputs]
             outputs = [np.argmax(output, axis=-1) for output in outputs]
+            # stack it so that it will have shape (batch_size, task)
+            outputs = np.stack(outputs, axis=1)
 
             # save ground_truth labels and predictions in arrays to calculate metrics afterwards by one time
             predictions.append(outputs)
@@ -72,10 +95,10 @@ def evaluate_model(model: torch.nn.Module, generator: torch.utils.data.DataLoade
 
         # calculate evaluation metrics for each task
         metric_tasks = []
-        for task in range(predictions.shape[0]):
+        for task in range(predictions.shape[1]):
             results = {}
             for name, metric in evaluation_metrics_classification.items():
-                results[str(task)+name] = metric(ground_truth[task], predictions[task])
+                results[str(task)+"_"+name] = metric(ground_truth[:,task], predictions[:,task])
             metric_tasks.append(results)
         # print evaluation metrics
         print('Evaluation metrics')
@@ -162,7 +185,8 @@ def train_epoch(model: torch.nn.Module, train_generator: torch.utils.data.DataLo
 
         # tranfrorm labels to one-hot encoded tensors. Remember that labels is a list of torch.Tensor
         # where each list element is a tensor with labels for each classification task
-        labels = [torch.nn.functional.one_hot(label, num_classes=3).float() for label in labels]
+        labels = transform_labels_to_one_hot(labels, num_classes=3)
+        labels = labels.to(device)
 
         # do train step
         with torch.set_grad_enabled(True):
@@ -308,7 +332,7 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
         model.eval()
         print("Evaluation of the model on dev set.")
         val_metrics = evaluate_model(model, dev_generator, device)
-        general_val_metric = (val_metrics["0_val_recall"] + val_metrics["1_val_recall"] + val_metrics["2_val_recall"])/3.
+        general_val_metric = (val_metrics[0]["0_val_recall"] + val_metrics[1]["1_val_recall"] + val_metrics[2]["2_val_recall"])/3.
 
         # update best val metrics got on validation set and log them using wandb
         # also, save model if we got better recall for all three classification tasks
