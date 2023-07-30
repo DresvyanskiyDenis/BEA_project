@@ -87,10 +87,12 @@ def compute_class_weights(data:Dict[str, pd.DataFrame])->List[np.array]:
     # concat all dataframes
     df = pd.concat(list(data.values()))
     # get number of samples for every class
-    q1 = df['q1'].value_counts().sort_index()
-    q2 = df['q2'].value_counts().sort_index()
-    q3 = df['q3'].value_counts().sort_index()
+    q1 = df['q1'].value_counts().sort_index().values
+    q2 = df['q2'].value_counts().sort_index().values
+    q3 = df['q3'].value_counts().sort_index().values
     # compute class weights
     class_weights = [1./(q1/q1.sum()), 1./(q2/q2.sum()), 1./(q3/q3.sum())]
+    # normalize so that sum of weights is 1
+    class_weights = [w/w.sum() for w in class_weights]
     return class_weights
 
