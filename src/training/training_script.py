@@ -2,8 +2,8 @@ import sys
 
 import scipy
 
-sys.path.append('/work/home/dsu/BEA_project/')
-sys.path.append('/work/home/dsu/datatools/')
+sys.path.append('/nfs/home/ddresvya/scripts/BEA/')
+sys.path.append('/nfs/home/ddresvya/scripts/datatools/')
 
 import argparse
 from torchinfo import summary
@@ -229,8 +229,8 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
     # metaparams
     metaparams = {
         # general params
-        "architecture": "Transformer-Based",
-        "MODEL_TYPE": "Transformer-Based",
+        "architecture": "Transformer-Based-1-block",
+        "MODEL_TYPE": "Transformer-Based-1-block",
         "dataset": "BEA",
         "BEST_MODEL_SAVE_PATH": "best_models/",
         "NUM_WORKERS": 8,
@@ -372,9 +372,9 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
 def main(window_size, stride, batch_size, accumulate_gradients,
          loss_multiplication_factor):
     # params
-    path_to_train_df = "/Data/extracted_embeddings/train_embeddings.csv"
-    path_to_dev_df = "/Data/extracted_embeddings/dev_embeddings.csv"
-    path_to_test_df = "/Data/extracted_embeddings/test_embeddings.csv"
+    path_to_train_df = "/nfs/home/ddresvya/scripts/BEA/extracted_embeddings/train_embeddings.csv"
+    path_to_dev_df = "/nfs/home/ddresvya/scripts/BEA/extracted_embeddings/dev_embeddings.csv"
+    path_to_test_df = "/nfs/home/ddresvya/scripts/BEA/extracted_embeddings/test_embeddings.csv"
     print("Start of the script....")
     # load data
     print("Loading data....")
