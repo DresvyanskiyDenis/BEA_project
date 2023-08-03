@@ -23,20 +23,20 @@ class Seq2one_model(nn.Module):
                                               dropout=0.2,
                                               positional_encoding=True)
 
-        self.transformer_layer_2 = Transformer_layer(input_dim=input_size,
-                                                num_heads=transformer_num_heads,
-                                                dropout=0.2,
-                                                positional_encoding=True)
+        #self.transformer_layer_2 = Transformer_layer(input_dim=input_size,
+        #                                        num_heads=transformer_num_heads,
+        #                                        dropout=0.2,
+        #                                       positional_encoding=True)
 
-        self.transformer_layer_3 = Transformer_layer(input_dim=input_size,
-                                                 num_heads=transformer_num_heads,
-                                                 dropout=0.2,
-                                                 positional_encoding=True)
+        #self.transformer_layer_3 = Transformer_layer(input_dim=input_size,
+        #                                         num_heads=transformer_num_heads,
+        #                                         dropout=0.2,
+        #                                         positional_encoding=True)
 
-        self.transformer_layer_4 = Transformer_layer(input_dim=input_size,
-                                                     num_heads=transformer_num_heads,
-                                                     dropout=0.2,
-                                                     positional_encoding=True)
+        #self.transformer_layer_4 = Transformer_layer(input_dim=input_size,
+        #                                             num_heads=transformer_num_heads,
+        #                                             dropout=0.2,
+        #                                             positional_encoding=True)
 
         # get rid of timesteps
         self.start_dropout = nn.Dropout(0.2)
@@ -52,9 +52,9 @@ class Seq2one_model(nn.Module):
     def forward(self, x):
         # transformer layers
         x = self.transformer_layer_1(key=x, value=x, query=x)
-        x = self.transformer_layer_2(key=x, value=x, query=x)
-        x = self.transformer_layer_3(key=x, value=x, query=x)
-        x = self.transformer_layer_4(key=x, value=x, query=x)
+        #x = self.transformer_layer_2(key=x, value=x, query=x)
+        #x = self.transformer_layer_3(key=x, value=x, query=x)
+        #x = self.transformer_layer_4(key=x, value=x, query=x)
         # dropout after transformer layers
         x = self.start_dropout(x)
         # squeeze timesteps so that we have [batch_size, num_features]

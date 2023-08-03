@@ -231,7 +231,7 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
         # general params
         "architecture": "Transformer-Based",
         "MODEL_TYPE": "Transformer-Based",
-        "dataset": "NoXi, DAiSEE",
+        "dataset": "BEA",
         "BEST_MODEL_SAVE_PATH": "best_models/",
         "NUM_WORKERS": 8,
         # temporal params
@@ -342,7 +342,7 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
             # save best model
             if not os.path.exists(config.BEST_MODEL_SAVE_PATH):
                 os.makedirs(config.BEST_MODEL_SAVE_PATH)
-            torch.save(model.state_dict(), os.path.join(config.BEST_MODEL_SAVE_PATH, 'best_model.pth'))
+            torch.save(model.state_dict(), os.path.join(config.BEST_MODEL_SAVE_PATH, 'best_model_general_recall.pth'))
 
         # log everything using wandb
         wandb.log({'epoch': epoch}, commit=False)
