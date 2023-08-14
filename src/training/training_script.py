@@ -25,8 +25,8 @@ from src.training.models import Seq2one_model
 
 
 def construct_model(num_classes: List[int], num_timesteps: int) -> torch.nn.Module:
-    model = Seq2one_model(input_size=256, num_classes=num_classes, transformer_num_heads=4,
-                          num_timesteps=num_timesteps)
+    model = Seq2one_model(input_size=256, num_classes=num_classes, transformer_num_heads=16,
+                          num_timesteps=num_timesteps, num_transformer_layers=2)
     return model
 
 def transform_labels_to_one_hot(labels: torch.Tensor, num_classes:int) -> torch.Tensor:
@@ -229,8 +229,8 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
     # metaparams
     metaparams = {
         # general params
-        "architecture": "Transformer-Based-1-block",
-        "MODEL_TYPE": "Transformer-Based-1-block",
+        "architecture": "Transformer-Based-2-block",
+        "MODEL_TYPE": "Transformer-Based-2-block",
         "dataset": "BEA",
         "BEST_MODEL_SAVE_PATH": "best_models/",
         "NUM_WORKERS": 8,
