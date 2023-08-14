@@ -20,8 +20,13 @@ class Seq2one_model(nn.Module):
         self.num_transformer_layers = num_transformer_layers
 
         # create transformer layer for multimodal cross-fusion
-
-        self.transformer_layers = nn.ModuleList([Transformer_layer(input_dim=input_size,
+        if num_transformer_layers == 1:
+            self.transformer_layers = Transformer_layer(input_dim=input_size,
+                                                        num_heads=transformer_num_heads,
+                                                        dropout=0.2,
+                                                        positional_encoding=True)
+        else:
+            self.transformer_layers = nn.ModuleList([Transformer_layer(input_dim=input_size,
                                                                      num_heads=transformer_num_heads,
                                                                      dropout=0.2,
                                                                      positional_encoding=True) for _ in range(num_transformer_layers)])
@@ -40,8 +45,11 @@ class Seq2one_model(nn.Module):
 
     def forward(self, x):
         # transformer layers
-        for i in range(self.num_transformer_layers):
-            x = self.transformer_layers[i](key=x, value=x, query=x)
+        if self.num_transformer_layers == 1:
+            x = self.transformer_layers(key=x, value=x, query=x)
+        else:
+            for i in range(self.num_transformer_layers):
+                x = self.transformer_layers[i](key=x, value=x, query=x)
         # dropout after transformer layers
         x = self.start_dropout(x)
         # squeeze timesteps so that we have [batch_size, num_features]
