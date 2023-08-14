@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import torch
 from torch import nn
@@ -10,33 +10,22 @@ from pytorch_utils.layers.attention_layers import Transformer_layer
 class Seq2one_model(nn.Module):
 
     def __init__(self, input_size:int,
-                 num_classes:List[int], transformer_num_heads:int, num_timesteps:int):
+                 num_classes:List[int], transformer_num_heads:int, num_timesteps:int,
+                 num_transformer_layers:Optional[int]=1):
         super(Seq2one_model, self).__init__()
         self.input_size = input_size
         self.num_classes = num_classes
         self.transformer_num_heads = transformer_num_heads
         self.num_timesteps = num_timesteps
+        self.num_transformer_layers = num_transformer_layers
 
         # create transformer layer for multimodal cross-fusion
-        self.transformer_layer_1 = Transformer_layer(input_dim = input_size,
-                                              num_heads=transformer_num_heads,
-                                              dropout=0.2,
-                                              positional_encoding=True)
 
-        #self.transformer_layer_2 = Transformer_layer(input_dim=input_size,
-        #                                        num_heads=transformer_num_heads,
-        #                                        dropout=0.2,
-        #                                       positional_encoding=True)
+        self.transformer_layers = nn.ModuleList([Transformer_layer(input_dim=input_size,
+                                                                     num_heads=transformer_num_heads,
+                                                                     dropout=0.2,
+                                                                     positional_encoding=True) for _ in range(num_transformer_layers)])
 
-        #self.transformer_layer_3 = Transformer_layer(input_dim=input_size,
-        #                                         num_heads=transformer_num_heads,
-        #                                         dropout=0.2,
-        #                                         positional_encoding=True)
-
-        #self.transformer_layer_4 = Transformer_layer(input_dim=input_size,
-        #                                             num_heads=transformer_num_heads,
-        #                                             dropout=0.2,
-        #                                             positional_encoding=True)
 
         # get rid of timesteps
         self.start_dropout = nn.Dropout(0.2)
@@ -51,10 +40,8 @@ class Seq2one_model(nn.Module):
 
     def forward(self, x):
         # transformer layers
-        x = self.transformer_layer_1(key=x, value=x, query=x)
-        #x = self.transformer_layer_2(key=x, value=x, query=x)
-        #x = self.transformer_layer_3(key=x, value=x, query=x)
-        #x = self.transformer_layer_4(key=x, value=x, query=x)
+        for i in range(self.num_transformer_layers):
+            x = self.transformer_layers[i](key=x, value=x, query=x)
         # dropout after transformer layers
         x = self.start_dropout(x)
         # squeeze timesteps so that we have [batch_size, num_features]
@@ -75,7 +62,8 @@ class Seq2one_model(nn.Module):
 if __name__ == "__main__":
     x = torch.rand(10, 40, 256)
     y = torch.rand(10, 40, 1)
-    model = Seq2one_model(input_size=256, num_classes=[3, 3, 3], transformer_num_heads=4, num_timesteps=40)
+    model = Seq2one_model(input_size=256, num_classes=[3, 3, 3], transformer_num_heads=16, num_timesteps=40,
+                          num_transformer_layers=3)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     summary(model, (10, 40, 256))
