@@ -135,7 +135,7 @@ def main():
     print("Downloading models....")
     info = get_info_and_download_models_weights_from_project(entity='denisdresvyanskiy', project_name='BEA_project',
                                                                 output_path='/nfs/home/ddresvya/scripts/BEA/models')
-    info = info.reset_index()
+    info = info.reset_index(drop=True)
     # add columns to the info
     info['0_test_recall'] = None
     info['1_test_recall'] = None
