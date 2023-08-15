@@ -62,6 +62,9 @@ def construct_data_loaders(video_dicts: List[Dict[str, pd.DataFrame]],
     # every video_dict is a dictionary where keys are video names and values are pd.DataFrames
     # every pd.DataFrame has the following columns: video_name, frame_num, q1, q2, q3, emb_0, emb_1, ..., emb_255
 
+    # deep copy video_dicts
+    video_dicts = video_dicts.copy()
+
     # !!! we consider first video_dicts as the training dataloader
     train_data_loader = video_dicts.pop(0)
     train_data_loader = TemporalEmbeddingsLoader(embeddings_with_labels=train_data_loader, label_columns=label_columns,
