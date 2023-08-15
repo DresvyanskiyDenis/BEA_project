@@ -39,14 +39,12 @@ def get_info_and_download_models_weights_from_project(entity: str, project_name:
     for run in runs:
         # check if the model was saved during training. If not, skip this run. It can be either because of the error
         # or because it is in the middle of training
-        if run.file('best_model_recall.pth').size==0:
-            continue
         ID = run.name
         model_type = run.config['MODEL_TYPE']
         window_size = run.config['window_size']
         stride = run.config['stride']
         loss_multiplication_factor = run.config['loss_multiplication_factor']
-        best_val_recall = run.config['best_val_recall_classification']
+        best_val_recall = run.config['best_val_recall']
         info = pd.concat([info,
                           pd.DataFrame.from_dict(
                               {'ID': [ID], 'model_type': [model_type],
@@ -135,8 +133,9 @@ def main():
     data = load_data(paths_to_dfs=[path_to_train_df, path_to_dev_df, path_to_test_df])
     # load all model weights
     print("Downloading models....")
-    info = get_info_and_download_models_weights_from_project(entity='denisdresvyanskiy', project_name='BEA',
+    info = get_info_and_download_models_weights_from_project(entity='denisdresvyanskiy', project_name='BEA_project',
                                                                 output_path='/nfs/home/ddresvya/scripts/BEA/models')
+    info = info.reset_index()
     # add columns to the info
     info['0_test_recall'] = None
     info['1_test_recall'] = None
@@ -162,7 +161,7 @@ def main():
         if model_type == 'Transformer-Based-1-block':
             model = Seq2one_model(input_size=256, num_classes=[3,3,3], transformer_num_heads=4,
                           num_timesteps=int(window_size*5), num_transformer_layers=1)
-        elif model_type == 'Transformer-Based-2-blocks':
+        elif model_type == 'Transformer-Based-2-block':
             model = Seq2one_model(input_size=256, num_classes=[3,3,3], transformer_num_heads=16,
                           num_timesteps=int(window_size*5), num_transformer_layers=2)
         else:
@@ -178,12 +177,13 @@ def main():
         # change the prefix for test metrics
         test_metrics = [{metric_name.replace('val','test'):metric_value for metric_name, metric_value in metrics_task.items()} for metrics_task in test_metrics]
         # add metrics to the info
-        info['0_test_recall'].iloc[i] = test_metrics[0]['test_recall']
-        info['1_test_recall'].iloc[i] = test_metrics[1]['test_recall']
-        info['2_test_recall'].iloc[i] = test_metrics[2]['test_recall']
-        info['0_dev_recall'].iloc[i] = dev_metrics[0]['val_recall']
-        info['1_dev_recall'].iloc[i] = dev_metrics[1]['val_recall']
-        info['2_dev_recall'].iloc[i] = dev_metrics[2]['val_recall']
+        info.loc[i, '0_test_recall'] = test_metrics[0]['0_test_recall']
+        info.loc[i, '1_test_recall'] = test_metrics[1]['1_test_recall']
+        info.loc[i, '2_test_recall'] = test_metrics[2]['2_test_recall']
+        info.loc[i, '0_dev_recall'] = dev_metrics[0]['0_val_recall']
+        info.loc[i, '1_dev_recall'] = dev_metrics[1]['1_val_recall']
+        info.loc[i, '2_dev_recall'] = dev_metrics[2]['2_val_recall']
+
         # save info
         info.to_csv('/nfs/home/ddresvya/scripts/BEA/models/info.csv', index=False)
 
@@ -193,5 +193,6 @@ def main():
         torch.cuda.empty_cache()
 
 
-
+if __name__ == "__main__":
+    main()
 
