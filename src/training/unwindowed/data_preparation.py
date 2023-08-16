@@ -115,6 +115,25 @@ class DataLoader(Dataset):
             raise ValueError("padding_mode should be either 'max' or 'average'")
         return features
 
+def create_data_generators(data:List[Dict[str, pd.DataFrame]], batch_size:int, padding:bool, padding_mode:str)->\
+        List[torch.utils.data.DataLoader]:
+    data_generators = []
+    train_generator = DataLoader(embeddings_with_labels=data[0], label_columns=['q1', 'q2', 'q3'],
+                                        feature_columns=[f'emb_{i}' for i in range(256)],
+                                            preprocessing_functions=None, padding=padding, padding_mode=padding_mode)
+    train_generator = torch.utils.data.DataLoader(train_generator, batch_size=batch_size, shuffle=True)
+    data_generators.append(train_generator)
+
+    for i in range(1, len(data)):
+        generator = DataLoader(embeddings_with_labels=data[i], label_columns=['q1', 'q2', 'q3'],
+                                        feature_columns=[f'emb_{i}' for i in range(256)],
+                                            preprocessing_functions=None, padding=padding, padding_mode=padding_mode)
+        generator = torch.utils.data.DataLoader(generator, batch_size=batch_size, shuffle=False)
+        data_generators.append(generator)
+    return data_generators
+
+
+
 
 
 if __name__ == "__main__":
