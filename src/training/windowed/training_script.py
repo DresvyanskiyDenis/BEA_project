@@ -20,8 +20,8 @@ from sklearn.metrics import recall_score, precision_score, f1_score, accuracy_sc
 from pytorch_utils.lr_schedullers import WarmUpScheduler
 from pytorch_utils.training_utils.callbacks import TorchEarlyStopping
 from pytorch_utils.training_utils.losses import SoftFocalLoss
-from src.training.data_preparation import load_data, construct_data_loaders, compute_class_weights
-from src.training.models import Seq2one_model
+from src.training.windowed.data_preparation import load_data, construct_data_loaders, compute_class_weights
+from src.training.windowed.models import Seq2one_model
 
 
 def construct_model(num_classes: List[int], num_timesteps: int) -> torch.nn.Module:

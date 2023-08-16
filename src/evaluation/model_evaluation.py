@@ -7,9 +7,9 @@ import scipy
 import torch
 import wandb
 
-from src.training.data_preparation import construct_data_loaders, load_data
-from src.training.models import Seq2one_model
-from src.training.training_script import evaluate_model
+from src.training.windowed.data_preparation import construct_data_loaders, load_data
+from src.training.windowed.models import Seq2one_model
+from src.training.windowed.training_script import evaluate_model
 from visualization.ConfusionMatrixVisualization import plot_and_save_confusion_matrix
 
 
