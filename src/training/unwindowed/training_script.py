@@ -1,6 +1,6 @@
 import sys
 
-import scip
+import scipy
 
 sys.path.append('/nfs/home/ddresvya/scripts/BEA/')
 sys.path.append('/nfs/home/ddresvya/scripts/datatools/')
@@ -410,6 +410,8 @@ if __name__ == "__main__":
     batch_size = args.batch_size
     padding = bool(args.padding)
     padding_mode = args.padding_mode
+    if padding_mode == "None":
+        padding_mode = None
     accumulate_gradients = args.accumulate_gradients
     loss_multiplication_factor = args.loss_multiplication_factor
     # run main script with passed args

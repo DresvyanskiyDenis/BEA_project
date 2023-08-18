@@ -151,7 +151,7 @@ if __name__ == "__main__":
     train_data_loader = DataLoader(embeddings_with_labels=data[0], label_columns=['q1', 'q2', 'q3'],
                                       feature_columns=[f'emb_{i}' for i in range(256)],
                                         preprocessing_functions=None, padding=True, padding_mode='average')
-    train_data_loader = torch.utils.data.DataLoader(train_data_loader, batch_size=1, shuffle=True)
+    train_data_loader = torch.utils.data.DataLoader(train_data_loader, batch_size=32, shuffle=True)
 
     for i, (x, y) in enumerate(train_data_loader):
         print(x.shape)
