@@ -1,7 +1,5 @@
 import sys
 
-import scipy
-
 sys.path.append('/nfs/home/ddresvya/scripts/BEA/')
 sys.path.append('/nfs/home/ddresvya/scripts/datatools/')
 
@@ -21,32 +19,30 @@ from pytorch_utils.lr_schedullers import WarmUpScheduler
 from pytorch_utils.training_utils.callbacks import TorchEarlyStopping
 from pytorch_utils.training_utils.losses import SoftFocalLoss
 
-
-from src.training.unwindowed.data_preparation import load_data, DataLoader, create_data_generators, \
+from src.training.unwindowed.data_preparation import load_data, create_data_generators, \
     compute_class_weights
 from src.training.unwindowed.models import Seq2one_model_unwindowed
 
 
-
-def construct_model(num_classes: List[int], num_transformer_layers:int) -> torch.nn.Module:
+def construct_model(num_classes: List[int], num_transformer_layers: int,
+                    batch_norm: bool) -> torch.nn.Module:
     model = Seq2one_model_unwindowed(input_size=256, num_classes=num_classes, transformer_num_heads=16,
-                                     num_transformer_layers=num_transformer_layers)
+                                     num_transformer_layers=num_transformer_layers, batch_norm=batch_norm)
     return model
 
-def transform_labels_to_one_hot(labels: torch.Tensor, num_classes:int) -> torch.Tensor:
+
+def transform_labels_to_one_hot(labels: torch.Tensor, num_classes: int) -> torch.Tensor:
     # input shape (batch_size, sequence_length, number_of_class)
     # Warning: in this case, the number_of_class can be 3-dimensional, for example.
     # This means that the task is multi-task or multi-label classification
     # output shape (batch_size, task, one_hot_encoded)
     labels = labels.cpu().numpy()
     # one-hot encode
-    labels = [np.eye(num_classes)[labels[:,i].astype(int)] for i in range(labels.shape[1])]
+    labels = [np.eye(num_classes)[labels[:, i].astype(int)] for i in range(labels.shape[1])]
     labels = [torch.from_numpy(label).float() for label in labels]
     # concatenate them back so that they have shape (batch_size, task, one_hot_encoded)
     labels = torch.stack(labels, dim=1)
     return labels
-
-
 
 
 def evaluate_model(model: torch.nn.Module, generator: torch.utils.data.DataLoader, device: torch.device) -> List[Dict[
@@ -71,15 +67,19 @@ def evaluate_model(model: torch.nn.Module, generator: torch.utils.data.DataLoade
             inputs = inputs.float()
             inputs = inputs.to(device)
             # forward pass
-            outputs = model(inputs) # list of outputs for each classification task
+            outputs = model(inputs)  # list of outputs for each classification task
 
             # labels to numpy
             labels = labels.cpu().numpy().squeeze()
+            # add batch dimension if it is not there
+            if len(labels.shape)==1:
+                labels = np.expand_dims(labels, axis=0)
 
             # softmax, transformation to numpy, argmax for each classification task
             outputs = [torch.softmax(output, dim=-1) for output in outputs]
             outputs = [output.cpu().numpy().squeeze() for output in outputs]
-            outputs = [np.argmax(output, axis=-1) for output in outputs]
+            outputs = [np.argmax(output, axis=-1, keepdims=True) for output in outputs]
+            outputs = [output.squeeze() if output.shape != (1,) else output for output in outputs ]
             # stack it so that it will have shape (batch_size, task)
             outputs = np.stack(outputs, axis=1)
 
@@ -92,13 +92,12 @@ def evaluate_model(model: torch.nn.Module, generator: torch.utils.data.DataLoade
         predictions = np.concatenate(predictions, axis=0)
         ground_truth = np.concatenate(ground_truth, axis=0)
 
-
         # calculate evaluation metrics for each task
         metric_tasks = []
         for task in range(predictions.shape[1]):
             results = {}
             for name, metric in evaluation_metrics_classification.items():
-                results[str(task)+"_"+name] = metric(ground_truth[:,task], predictions[:,task])
+                results[str(task) + "_" + name] = metric(ground_truth[:, task], predictions[:, task])
             metric_tasks.append(results)
         # print evaluation metrics
         print('Evaluation metrics')
@@ -130,7 +129,7 @@ def train_step(model: torch.nn.Module, criterion: List[torch.nn.Module],
     :return:
     """
     # forward pass
-    output = model(inputs) # list of outputs for each classification task
+    output = model(inputs)  # list of outputs for each classification task
     # calculate loss for every output of the model
     losses = []
     for i in range(len(output)):
@@ -222,14 +221,14 @@ def train_epoch(model: torch.nn.Module, train_generator: torch.utils.data.DataLo
 
 
 def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: torch.utils.data.DataLoader,
-                class_weights: List[torch.Tensor],BATCH_SIZE: int, ACCUMULATE_GRADIENTS: int,
-                loss_multiplication_factor: Optional[float] = None, num_transformer_layers:int=1) -> None:
+                class_weights: List[torch.Tensor], BATCH_SIZE: int, batch_norm: bool, ACCUMULATE_GRADIENTS: int,
+                loss_multiplication_factor: Optional[float] = None, num_transformer_layers: int = 1) -> None:
     print("Start of the model training.")
     # metaparams
     metaparams = {
         # general params
-        "architecture": "Transformer-Based-%i-block-unwindowed"%num_transformer_layers,
-        "MODEL_TYPE": "Transformer-Based-%i-block-unwindowed"%num_transformer_layers,
+        "architecture": "Transformer-Based-%i-block-unwindowed" % num_transformer_layers,
+        "MODEL_TYPE": "Transformer-Based-%i-block-unwindowed" % num_transformer_layers,
         "dataset": "BEA",
         "BEST_MODEL_SAVE_PATH": "best_models/",
         "NUM_WORKERS": 8,
@@ -238,6 +237,7 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
         # training metaparams
         "NUM_EPOCHS": 100,
         "BATCH_SIZE": BATCH_SIZE,
+        "BATCH_NORM": batch_norm,
         "OPTIMIZER": "AdamW",
         "EARLY_STOPPING_PATIENCE": 100,
         "WEIGHT_DECAY": 0.0001,
@@ -268,7 +268,8 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
     # create model
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # construct sequence-to-one model out of base model
-    model = construct_model(num_classes=config.NUM_CLASSES, num_transformer_layers=num_transformer_layers)
+    model = construct_model(num_classes=config.NUM_CLASSES, num_transformer_layers=num_transformer_layers,
+                            batch_norm=config.BATCH_NORM)
     model = model.to(device)
     # print model architecture
     summary(model, (2, sequence_length, 256))
@@ -327,7 +328,8 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
         model.eval()
         print("Evaluation of the model on dev set.")
         val_metrics = evaluate_model(model, dev_generator, device)
-        general_val_metric = (val_metrics[0]["0_val_recall"] + val_metrics[1]["1_val_recall"] + val_metrics[2]["2_val_recall"])/3.
+        general_val_metric = (val_metrics[0]["0_val_recall"] + val_metrics[1]["1_val_recall"] + val_metrics[2][
+            "2_val_recall"]) / 3.
 
         # update best val metrics got on validation set and log them using wandb
         # also, save model if we got better recall for all three classification tasks
@@ -364,7 +366,7 @@ def train_model(train_generator: torch.utils.data.DataLoader, dev_generator: tor
     torch.cuda.empty_cache()
 
 
-def main(num_transformer_layers:int, padding:bool, padding_mode:str, batch_size, accumulate_gradients,
+def main(num_transformer_layers: int, padding: bool, padding_mode: str, batch_size, batch_norm, accumulate_gradients,
          loss_multiplication_factor):
     # params
     path_to_train_df = "/nfs/home/ddresvya/scripts/BEA/extracted_embeddings/train_embeddings.csv"
@@ -385,7 +387,7 @@ def main(num_transformer_layers:int, padding:bool, padding_mode:str, batch_size,
 
     # train the model
     train_model(train_generator=train_generator, dev_generator=dev_generator, class_weights=class_weights,
-                BATCH_SIZE=batch_size, ACCUMULATE_GRADIENTS=accumulate_gradients,
+                BATCH_SIZE=batch_size, batch_norm=batch_norm, ACCUMULATE_GRADIENTS=accumulate_gradients,
                 loss_multiplication_factor=loss_multiplication_factor, num_transformer_layers=num_transformer_layers)
 
 
@@ -393,6 +395,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog='Emotion Recognition model training')
     parser.add_argument('--num_transformer_layers', type=int, required=True)
     parser.add_argument('--batch_size', type=int, required=True)
+    parser.add_argument('--batch_norm', type=int, required=True)
     parser.add_argument('--padding', type=int, required=True)
     parser.add_argument('--padding_mode', type=str, required=True)
     parser.add_argument('--accumulate_gradients', type=int, required=True)
@@ -403,11 +406,14 @@ if __name__ == "__main__":
     # check arguments
     if args.batch_size < 1:
         raise ValueError("batch_size should be greater than 0")
+    if args.batch_norm not in [0, 1]:
+        raise ValueError("batch_norm should be 0 or 1")
     if args.accumulate_gradients < 1:
         raise ValueError("accumulate_gradients should be greater than 0")
     # convert args to bool
     num_transformer_layers = args.num_transformer_layers
     batch_size = args.batch_size
+    batch_norm = bool(args.batch_norm)
     padding = bool(args.padding)
     padding_mode = args.padding_mode
     if padding_mode == "None":
@@ -416,7 +422,7 @@ if __name__ == "__main__":
     loss_multiplication_factor = args.loss_multiplication_factor
     # run main script with passed args
     main(num_transformer_layers=num_transformer_layers, padding=padding, padding_mode=padding_mode,
-        batch_size=batch_size, accumulate_gradients=accumulate_gradients,
+         batch_size=batch_size, batch_norm=batch_norm, accumulate_gradients=accumulate_gradients,
          loss_multiplication_factor=loss_multiplication_factor)
     # clear RAM
     gc.collect()

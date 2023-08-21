@@ -10,12 +10,14 @@ class Seq2one_model_unwindowed(nn.Module):
 
     def __init__(self, input_size:int,
                  num_classes:List[int], transformer_num_heads:int,
-                 num_transformer_layers:Optional[int]=1):
+                 num_transformer_layers:Optional[int]=1,
+                 batch_norm:Optional[bool]=True):
         super(Seq2one_model_unwindowed, self).__init__()
         self.input_size = input_size
         self.num_classes = num_classes
         self.transformer_num_heads = transformer_num_heads
         self.num_transformer_layers = num_transformer_layers
+        self.batch_norm = batch_norm
 
         # create transformer layer for multimodal cross-fusion
         if num_transformer_layers == 1:
@@ -36,7 +38,8 @@ class Seq2one_model_unwindowed(nn.Module):
         self.max_pool_after_transformer = nn.AdaptiveMaxPool1d(1)
         self.average_pool_after_transformer = nn.AdaptiveAvgPool1d(1)
         self.embeddings = nn.Linear(input_size*2, input_size//2)
-        self.batch_norm = nn.BatchNorm1d(input_size//2)
+        if self.batch_norm:
+            self.batch_norm = nn.BatchNorm1d(input_size//2)
         self.activation_embeddings = nn.Tanh()
         self.end_dropout = nn.Dropout(0.2)
 
@@ -62,7 +65,8 @@ class Seq2one_model_unwindowed(nn.Module):
         x = torch.cat([x_max.squeeze(), x_avg.squeeze()], dim=-1)
         # one more linear layer
         x = self.embeddings(x)
-        x = self.batch_norm(x)
+        if self.batch_norm:
+            x = self.batch_norm(x)
         x = self.activation_embeddings(x)
         x = self.end_dropout(x)
         # classifiers
