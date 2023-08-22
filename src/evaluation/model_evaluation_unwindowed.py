@@ -12,8 +12,7 @@ from src.training.unwindowed.models import Seq2one_model_unwindowed
 from src.training.unwindowed.training_script import evaluate_model
 from visualization.ConfusionMatrixVisualization import plot_and_save_confusion_matrix
 
-average_padding= {'rose-microwave-146', 'still-resonance-147', 'dark-shadow-148', 'sweet-river-149', 'stellar-lion-150', 'jolly-thunder-151', 'olive-salad-152', 'rural-bird-153',
-                  'daily-cosmos-164'}
+average_padding= {'rose-microwave-146', 'still-resonance-147', 'dark-shadow-148', 'sweet-river-149', 'stellar-lion-150', 'jolly-thunder-151', 'olive-salad-152', 'rural-bird-153'}
 max_padding={'fresh-glitter-154', 'firm-glade-155', 'fearless-star-156', 'wobbly-valley-157', 'good-bird-158', 'flowing-snowflake-159', 'avid-armadillo-160', 'radiant-fog-161'}
 none_padding={'fiery-vortex-139', 'copper-star-140', 'spring-energy-141', 'firm-water-142', 'cosmic-dragon-143', 'lunar-frost-145', 'icy-cosmos-144', 'woven-moon-138'}
 
@@ -48,8 +47,6 @@ def get_info_and_download_models_weights_from_project(entity: str, project_name:
         # or because it is in the middle of training
         ID = run.name
         if ID not in average_padding and ID not in max_padding and ID not in none_padding:
-            continue
-        if ID != 'daily-cosmos-164':
             continue
         model_type = run.config['MODEL_TYPE']
         batch_norm = run.config['BATCH_NORM']
@@ -175,6 +172,7 @@ def main():
         model = Seq2one_model_unwindowed(input_size=256, num_classes=[3,3,3], transformer_num_heads=16,
                                      num_transformer_layers=transformer_layers, batch_norm=batch_norm)
         # load model weights
+        model.load_state_dict(torch.load(os.path.join(output_path, info['ID'].iloc[i]+'.pth')))
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         model = model.to(device)
         # test model

@@ -37,6 +37,9 @@ def get_info_and_download_models_weights_from_project(entity: str, project_name:
     info = pd.DataFrame(columns=['ID', 'model_type', 'window_size', 'stride',
                                  'loss_multiplication_factor', 'best_val_recall'])
     for run in runs:
+        # check if run has window_size and stride in config. If not, skip this run
+        if 'window_size' not in run.config or 'stride' not in run.config:
+            continue
         # check if the model was saved during training. If not, skip this run. It can be either because of the error
         # or because it is in the middle of training
         ID = run.name
@@ -167,6 +170,7 @@ def main():
         else:
             raise ValueError("Wrong model type.")
         # load model weights
+        model.load_state_dict(torch.load(os.path.join(output_path, info['ID'].iloc[i]+'.pth')))
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         model = model.to(device)
         # test model
