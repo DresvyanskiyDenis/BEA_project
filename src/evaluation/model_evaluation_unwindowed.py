@@ -12,9 +12,9 @@ from src.training.unwindowed.models import Seq2one_model_unwindowed
 from src.training.unwindowed.training_script import evaluate_model
 from visualization.ConfusionMatrixVisualization import plot_and_save_confusion_matrix
 
-average_padding= {'rose-microwave-146', 'still-resonance-147', 'dark-shadow-148', 'sweet-river-149', 'stellar-lion-150', 'jolly-thunder-151', 'olive-salad-152', 'rural-bird-153'}
-max_padding={'fresh-glitter-154', 'firm-glade-155', 'fearless-star-156', 'wobbly-valley-157', 'good-bird-158', 'flowing-snowflake-159', 'avid-armadillo-160', 'radiant-fog-161'}
-none_padding={'fiery-vortex-139', 'copper-star-140', 'spring-energy-141', 'firm-water-142', 'cosmic-dragon-143', 'lunar-frost-145', 'icy-cosmos-144', 'woven-moon-138'}
+average_padding= {'bright-vortex-194', 'firm-thunder-195', 'misty-firefly-196', 'devout-energy-197', 'revived-sun-198', 'crisp-waterfall-199', 'sleek-dawn-200', 'swept-plasma-201'}
+max_padding={'earthy-mountain-209', 'brisk-oath-208', 'fancy-terrain-207', 'zany-grass-206', 'balmy-haze-205', 'golden-snow-204', 'hopeful-glade-203', 'denim-wave-202'}
+none_padding={'honest-paper-186','honest-paper-186','prime-bush-188','hardy-bee-189','electric-water-190','spring-bird-191','trim-resonance-192', 'crimson-bee-193'}
 
 
 
